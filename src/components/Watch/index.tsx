@@ -2,33 +2,35 @@ import classNames from "classnames";
 import { CircularProgressbar } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import style from "./style.module.scss";
-import { useState } from "react";
-import { ICoord } from "./interfaces";
+import { useRef, useState } from "react";
+import { motion } from "framer-motion";
 
 const Watch = () => {
   const [startingPosition, setStartingPosition] = useState({ x: 0, y: 0 });
   const [centerPoint, setCenterPoint] = useState({ x: 0, y: 0 });
   const [angle, setAngle] = useState(0);
+  const ref = useRef<HTMLDivElement | null>(null);
 
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragStart = (e: MouseEvent) => {
+    if (!(e instanceof PointerEvent)) return;
+    console.log(e);
     setStartingPosition({
       x: e.clientX,
       y: e.clientY,
     });
+    if (!e.target) return;
     setCenterPoint({
-      x: e.currentTarget.offsetLeft + e.currentTarget.clientWidth / 2,
-      y: e.currentTarget.offsetTop + e.currentTarget.clientHeight / 2,
+      x: e.offsetX + (ref.current?.clientWidth || 0) / 2,
+      y: e.offsetY + (ref.current?.clientHeight || 0) / 2,
     });
   };
 
-  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragEnter = (e: PointerEvent) => {
     e.preventDefault();
-    console.log("test");
     const currentPosition = {
-      x: e.clientX,
-      y: e.clientY,
+      x: e.offsetX,
+      y: e.offsetY,
     };
-    console.log(currentPosition);
     const sAngle = Math.atan2(
       startingPosition.y - centerPoint.y,
       startingPosition.x - centerPoint.x
@@ -38,27 +40,32 @@ const Watch = () => {
       currentPosition.x - centerPoint.x
     );
 
-    console.log(
-      startingPosition.y - centerPoint.y,
-      startingPosition.x - centerPoint.x
-    );
-    setAngle((oldAngle) => oldAngle + ((pAngle - sAngle) * 180) / Math.PI);
+    console.log(currentPosition, startingPosition);
+
+    setAngle((ond) => ond + ((pAngle - sAngle) * 180) / Math.PI);
     setStartingPosition(currentPosition);
   };
 
   return (
-    <div
-      onDragStart={handleDragStart}
-      onDrag={handleDragEnter}
-      draggable
-      className={classNames(style.containerWatch)}
-      style={{
-        width: 240,
-        transform: `rotate(${angle}deg)`,
+    <motion.div
+      drag
+      ref={ref}
+      animate={{
+        rotate: `${angle}deg`,
       }}
+      onDrag={(e) => handleDragEnter(e as PointerEvent)}
+      onMouseMove={(e) => handleDragStart(e as unknown as MouseEvent)}
+      dragElastic={0}
+      dragConstraints={{
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+      }}
+      className={classNames(style.containerWatch)}
     >
       <CircularProgressbar value={4} maxValue={24} />
-    </div>
+    </motion.div>
   );
 };
 
